@@ -11,7 +11,7 @@ OPERATION=$1
 CLUSTER_NAME=$2
 
 function usage {
-  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | attach-lb <CLUSTER_NAME> <LB_NAME>}"
+  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> (<LB_NAME> | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
 }
 
 if [ "${CLUSTER_NAME}" == "" ];then
@@ -24,17 +24,15 @@ if [ "${OPERATION}" == "" ];then
   exit 1
 fi
 
-CLUSTER_UUID=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
-MASTERS=$(mktemp /tmp/master-$CLUSTER_UUID.XXXX)
+MASTERS=$(mktemp /tmp/master.XXXX)
 
-aws ec2 describe-instances \
---filters "Name=tag:deployment,Values=service-instance_$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)"  "Name=tag:instance_group,Values=master" "Name=instance-state-name,Values=running" \
---query "Reservations[].Instances[].[VpcId,InstanceId]" \
---output text \
-> $MASTERS
-
-CLUSTER_VPC=$(basename $(head -1 $MASTERS | cut -d' ' -f1))
-
+function generate-masters() {
+  aws ec2 describe-instances \
+  --filters "Name=tag:deployment,Values=service-instance_$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)"  "Name=tag:instance_group,Values=master" "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].[VpcId,InstanceId]" \
+  --output text \
+  > $MASTERS
+}
 
 function create-tags {
   ENV_NAME=$1
@@ -42,8 +40,13 @@ function create-tags {
     usage
     exit 1
   fi
-  echo -e "${green}Fetching public subnets from vpc $CLUSTER_VPC ${reset}"
+  
+  generate-masters
 
+  CLUSTER_VPC=$(basename $(head -1 $MASTERS | cut -d' ' -f1))
+  CLUSTER_UUID=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
+
+  echo -e "${green}Fetching public subnets from vpc $CLUSTER_VPC ${reset}"
   subnets=$(aws ec2 describe-subnets \
     --filters "Name=vpc-id,Values=$CLUSTER_VPC" "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
     --query 'Subnets[*].[SubnetId]' \
@@ -63,12 +66,25 @@ function create-tags {
   done
 }
 
+function create-lb {
+  LB_NAME=$1
+  if [ "${LB_NAME}" == "" ];then
+    LB_NAME=k8s-master-${CLUSTER_NAME}
+  fi 
+
+  echo -e "${green}Creating ELB (${LB_NAME})${reset}"
+  echo -e "${red}Not Implemented!${reset}"
+  exit 1
+}
+
 function attach-lb {
   LB_NAME=$1
   if [ "${LB_NAME}" == "" ];then
-    usage
-    exit 1
+    LB_NAME=k8s-master-${CLUSTER_NAME}
   fi
+  
+  generate-masters
+
   lb=$(aws elb describe-load-balancers --output json | jq -r ".LoadBalancerDescriptions | map(select(.LoadBalancerName == \"${LB_NAME}\"))[0].LoadBalancerName")
   if [ "${lb}" == "null" ];then
     echo -e "${red}ELB (${LB_NAME}) does not exist. ${reset}"
@@ -83,6 +99,9 @@ function attach-lb {
 case $OPERATION in
   create-tags)
     create-tags $3
+    ;;
+  create-lb)
+    create-lb $3
     ;;
   attach-lb)
     attach-lb $3
