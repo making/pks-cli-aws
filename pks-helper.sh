@@ -11,7 +11,7 @@ OPERATION=$1
 CLUSTER_NAME=$2
 
 function usage {
-  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> (<LB_NAME> | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
+  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME> | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
 }
 
 if [ "${CLUSTER_NAME}" == "" ];then
@@ -66,15 +66,36 @@ function create-tags {
   done
 }
 
+function lb-security-group {
+  SECURITY_GROUP=pks_master
+  aws ec2 describe-security-groups \
+    --filters Name=ip-permission.from-port,Values=8443 Name=ip-permission.to-port,Values=8443 Name=ip-permission.cidr,Values='0.0.0.0/0' Name=group-name,Values=pks_master \
+    --query "SecurityGroups[*].{ID:GroupId}" --output text
+}
+
 function create-lb {
-  LB_NAME=$1
+  ENV_NAME=$1
+  LB_NAME=$2
+  if [ "${ENV_NAME}" == "" ];then
+    usage
+    exit 1
+  fi
   if [ "${LB_NAME}" == "" ];then
     LB_NAME=k8s-master-${CLUSTER_NAME}
   fi 
 
+  SECURITY_GROUP_ID=$(lb-security-group)
+
   echo -e "${green}Creating ELB (${LB_NAME})${reset}"
-  echo -e "${red}Not Implemented!${reset}"
-  exit 1
+
+  subnets=($(aws ec2 describe-subnets \
+    --filters "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
+    --query 'Subnets[*].[SubnetId]' \
+    --output text))
+
+  aws elb create-load-balancer --load-balancer-name ${LB_NAME} \
+    --listeners "Protocol=TCP,LoadBalancerPort=8443,InstanceProtocol=TCP,InstancePort=8443" \
+    --subnets "${subnets[0]}" "${subnets[1]}" "${subnets[2]}" --security-groups $SECURITY_GROUP_ID | jq -r .DNSName
 }
 
 function attach-lb {
