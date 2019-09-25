@@ -62,6 +62,26 @@ If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NA
 
 See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#reconfigure
 
+## Typical workflow
+
+### Create a new cluster
+
+```
+ENV_NAME=my-dev
+CLUSTER_NAME=cluster01
+
+MASTER_HOSTNAME=$(pks-aws create-lb ${CLUSTER_NAME} ${ENV_NAME})
+pks create-cluster ${CLUSTER_NAME} -e ${MASTER_HOSTNAME} -p small -n 1 --wait
+pks-aws attach-lb ${CLUSTER_NAME}
+pks-aws create-tags ${CLUSTER_NAME} ${ENV_NAME}
+```
+
+### Re-attach a LB to a master after upgrading the cluster
+
+```
+pks-aws attach-lb ${CLUSTER_NAME}
+```
+
 ## Author
 
 Originally based on: https://github.com/ronakbanka/manage-pks
