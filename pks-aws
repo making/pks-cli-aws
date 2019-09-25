@@ -34,6 +34,18 @@ function generate-masters() {
   > $MASTERS
 }
 
+function lb-security-group {
+  aws ec2 describe-security-groups \
+    --filters "Name=tag:Name,Values=$ENV_NAME-pks-master-security-group" \
+    --query "SecurityGroups[*].{ID:GroupId}" --output text
+}
+
+function worker-security-group {
+  aws ec2 describe-security-groups \
+    --filters "Name=tag:Name,Values=$ENV_NAME-vms-security-group" \
+    --query "SecurityGroups[*].{ID:GroupId}" --output text
+}
+
 function create-tags {
   ENV_NAME=$1
   if [ "${ENV_NAME}" == "" ];then
@@ -52,24 +64,27 @@ function create-tags {
     --query 'Subnets[*].[SubnetId]' \
     --output text)
 
+  TAG_KEY="kubernetes.io/cluster/service-instance_$CLUSTER_UUID"
   for subnet in ${subnets[@]};do
-    TAG_KEY="kubernetes.io/cluster/service-instance_$CLUSTER_UUID"
     echo -e "${green}Checking if Tag (${TAG_KEY}) exists in public subnet (${subnet}) for LoadBalancer type service${reset}" 1>&2
     tag=$(aws ec2 describe-tags --filters "Name=resource-id,Values=${subnet}" --query 'Tags' --output json | jq -r "map(select(.Key == \"${TAG_KEY}\"))[0].Key")
     if [ "${tag}" == "null" ];then
-      echo "> Not Found" 1>&2
       echo -e "${green}Adding Tag (${TAG_KEY}) to public subnet (${subnet}) for LoadBalancer type service${reset}" 1>&2
-      aws ec2 create-tags --resources "$subnet" --tags Key="kubernetes.io/cluster/service-instance_${CLUSTER_UUID}",Value="shared"
+      aws ec2 create-tags --resources "$subnet" --tags Key="${TAG_KEY}",Value="shared"
     else
-      echo "> Already Created" 1>&2
+      echo -e "${yellow}Already created. Skip.${reset}" 1>&2
     fi
   done
-}
-
-function lb-security-group {
-  aws ec2 describe-security-groups \
-    --filters "Name=tag:Name,Values=$ENV_NAME-pks-master-security-group" \
-    --query "SecurityGroups[*].{ID:GroupId}" --output text
+  
+  SECURITY_GROUP_ID=$(worker-security-group)
+  echo -e "${green}Checking if Tag (${TAG_KEY}) exists in security group (${SECURITY_GROUP_ID}) for LoadBalancer type service ${reset}" 1>&2
+  tag=$(aws ec2 describe-tags --filters "Name=resource-id,Values=${SECURITY_GROUP_ID}" --query 'Tags' --output json | jq -r "map(select(.Key == \"${TAG_KEY}\"))[0].Key")
+  if [ "${tag}" == "null" ];then
+    echo -e "${green}Adding Tag (${TAG_KEY}) to security group (${SECURITY_GROUP_ID}) for LoadBalancer type service${reset}" 1>&2
+    aws ec2 create-tags --resources "${SECURITY_GROUP_ID}" --tags Key="${TAG_KEY}",Value="shared"
+  else
+    echo -e "${yellow}Already created. Skip.${reset}" 1>&2
+  fi
 }
 
 function create-lb {

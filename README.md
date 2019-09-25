@@ -16,6 +16,7 @@ The PKS environment you want to manage must have
 
 * `${ENV_NAME}-public-subnet*` subnets
 * `${ENV_NAME}-pks-master-security-group` security group
+* `${ENV_NAME}-vms-security-group` security group
 
 Objects above should be created by https://github.com/pivotal-cf/terraforming-aws .
 
@@ -44,10 +45,12 @@ See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#create
 pks-aws create-tags <CLUSTER_NAME> <ENV_NAME>
 ```
 
-This commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag to public subnets of the given environment.
+This commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag to public subnets and the security group of workers (`vms_security_group`) of the given environment.
 Nothing happens if the subnets already have the tag.
 
-See also https://docs.pivotal.io/pks/1-5/deploy-workloads.html#aws
+See also
+* https://docs.pivotal.io/pks/1-5/deploy-workloads.html#aws (for public subnets)
+* https://github.com/kubernetes/kubernetes/issues/17626#issuecomment-389824696 (for the security group of workers)
 
 ### Attach a LB to master VM(s)
 
