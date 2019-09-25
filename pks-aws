@@ -46,7 +46,7 @@ function create-tags {
   CLUSTER_VPC=$(basename $(head -1 $MASTERS | cut -d' ' -f1))
   CLUSTER_UUID=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
 
-  echo -e "${green}Fetching public subnets from vpc $CLUSTER_VPC ${reset}"
+  echo -e "${green}Fetching public subnets from vpc $CLUSTER_VPC ${reset}" 1>&2
   subnets=$(aws ec2 describe-subnets \
     --filters "Name=vpc-id,Values=$CLUSTER_VPC" "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
     --query 'Subnets[*].[SubnetId]' \
@@ -54,14 +54,14 @@ function create-tags {
 
   for subnet in ${subnets[@]};do
     TAG_KEY="kubernetes.io/cluster/service-instance_$CLUSTER_UUID"
-    echo -e "${green}Checking if Tag (${TAG_KEY}) exists in public subnet (${subnet}) for LoadBalancer type service${reset}"
+    echo -e "${green}Checking if Tag (${TAG_KEY}) exists in public subnet (${subnet}) for LoadBalancer type service${reset}" 1>&2
     tag=$(aws ec2 describe-tags --filters "Name=resource-id,Values=${subnet}" --query 'Tags' --output json | jq -r "map(select(.Key == \"${TAG_KEY}\"))[0].Key")
     if [ "${tag}" == "null" ];then
-      echo "> Not Found"
-      echo -e "${green}Adding Tag (${TAG_KEY}) to public subnet (${subnet}) for LoadBalancer type service${reset}"
+      echo "> Not Found" 1>&2
+      echo -e "${green}Adding Tag (${TAG_KEY}) to public subnet (${subnet}) for LoadBalancer type service${reset}" 1>&2
       aws ec2 create-tags --resources "$subnet" --tags Key="kubernetes.io/cluster/service-instance_${CLUSTER_UUID}",Value="shared"
     else
-      echo "> Already Created"
+      echo "> Already Created" 1>&2
     fi
   done
 }
@@ -85,7 +85,7 @@ function create-lb {
 
   SECURITY_GROUP_ID=$(lb-security-group)
 
-  echo -e "${green}Creating ELB (${LB_NAME})${reset}"
+  echo -e "${green}Creating ELB (${LB_NAME})${reset}" 1>&2
 
   subnets=($(aws ec2 describe-subnets \
     --filters "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
@@ -107,11 +107,11 @@ function attach-lb {
 
   lb=$(aws elb describe-load-balancers --output json | jq -r ".LoadBalancerDescriptions | map(select(.LoadBalancerName == \"${LB_NAME}\"))[0].LoadBalancerName")
   if [ "${lb}" == "null" ];then
-    echo -e "${red}ELB (${LB_NAME}) does not exist. ${reset}"
+    echo -e "${red}ELB (${LB_NAME}) does not exist. ${reset}" 1>&2
     exit 1
   fi
   while read -r vpc instance;do
-    echo -e "${green}Adding ${instance} to load balancer ${LB_NAME} ${reset}"
+    echo -e "${green}Adding ${instance} to load balancer ${LB_NAME} ${reset}" 1>&2
     aws elb register-instances-with-load-balancer --load-balancer-name ${LB_NAME} --instances $instance > /dev/null
   done < "$MASTERS"
 }
