@@ -11,7 +11,7 @@ OPERATION=$1
 CLUSTER_NAME=$2
 
 function usage {
-  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME> | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
+  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME>) | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
 }
 
 if [ "${CLUSTER_NAME}" == "" ];then
@@ -67,7 +67,6 @@ function create-tags {
 }
 
 function lb-security-group {
-  SECURITY_GROUP=pks_master
   aws ec2 describe-security-groups \
     --filters "Name=tag:Name,Values=$ENV_NAME-pks-master-security-group" \
     --query "SecurityGroups[*].{ID:GroupId}" --output text
