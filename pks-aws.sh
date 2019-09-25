@@ -69,7 +69,7 @@ function create-tags {
 function lb-security-group {
   SECURITY_GROUP=pks_master
   aws ec2 describe-security-groups \
-    --filters Name=ip-permission.from-port,Values=8443 Name=ip-permission.to-port,Values=8443 Name=ip-permission.cidr,Values='0.0.0.0/0' Name=group-name,Values=pks_master \
+    --filters "Name=tag:Name,Values=$ENV_NAME-pks-master-security-group" \
     --query "SecurityGroups[*].{ID:GroupId}" --output text
 }
 
