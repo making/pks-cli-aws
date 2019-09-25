@@ -1,0 +1,133 @@
+#!/bin/bash
+set -e
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+yellow=`tput setaf 3`
+reset=`tput sgr0`
+
+
+OPERATION=$1
+CLUSTER_NAME=$2
+
+function usage {
+  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME> | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
+}
+
+if [ "${CLUSTER_NAME}" == "" ];then
+  usage
+  exit 1
+fi
+
+if [ "${OPERATION}" == "" ];then
+  usage
+  exit 1
+fi
+
+MASTERS=$(mktemp /tmp/master.XXXX)
+
+function generate-masters() {
+  aws ec2 describe-instances \
+  --filters "Name=tag:deployment,Values=service-instance_$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)"  "Name=tag:instance_group,Values=master" "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].[VpcId,InstanceId]" \
+  --output text \
+  > $MASTERS
+}
+
+function create-tags {
+  ENV_NAME=$1
+  if [ "${ENV_NAME}" == "" ];then
+    usage
+    exit 1
+  fi
+  
+  generate-masters
+
+  CLUSTER_VPC=$(basename $(head -1 $MASTERS | cut -d' ' -f1))
+  CLUSTER_UUID=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
+
+  echo -e "${green}Fetching public subnets from vpc $CLUSTER_VPC ${reset}"
+  subnets=$(aws ec2 describe-subnets \
+    --filters "Name=vpc-id,Values=$CLUSTER_VPC" "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
+    --query 'Subnets[*].[SubnetId]' \
+    --output text)
+
+  for subnet in ${subnets[@]};do
+    TAG_KEY="kubernetes.io/cluster/service-instance_$CLUSTER_UUID"
+    echo -e "${green}Checking if Tag (${TAG_KEY}) exists in public subnet (${subnet}) for LoadBalancer type service${reset}"
+    tag=$(aws ec2 describe-tags --filters "Name=resource-id,Values=${subnet}" --query 'Tags' --output json | jq -r "map(select(.Key == \"${TAG_KEY}\"))[0].Key")
+    if [ "${tag}" == "null" ];then
+      echo "> Not Found"
+      echo -e "${green}Adding Tag (${TAG_KEY}) to public subnet (${subnet}) for LoadBalancer type service${reset}"
+      aws ec2 create-tags --resources "$subnet" --tags Key="kubernetes.io/cluster/service-instance_${CLUSTER_UUID}",Value="shared"
+    else
+      echo "> Already Created"
+    fi
+  done
+}
+
+function lb-security-group {
+  SECURITY_GROUP=pks_master
+  aws ec2 describe-security-groups \
+    --filters Name=ip-permission.from-port,Values=8443 Name=ip-permission.to-port,Values=8443 Name=ip-permission.cidr,Values='0.0.0.0/0' Name=group-name,Values=pks_master \
+    --query "SecurityGroups[*].{ID:GroupId}" --output text
+}
+
+function create-lb {
+  ENV_NAME=$1
+  LB_NAME=$2
+  if [ "${ENV_NAME}" == "" ];then
+    usage
+    exit 1
+  fi
+  if [ "${LB_NAME}" == "" ];then
+    LB_NAME=k8s-master-${CLUSTER_NAME}
+  fi 
+
+  SECURITY_GROUP_ID=$(lb-security-group)
+
+  echo -e "${green}Creating ELB (${LB_NAME})${reset}"
+
+  subnets=($(aws ec2 describe-subnets \
+    --filters "Name=tag:Name,Values=$ENV_NAME-public-subnet*" \
+    --query 'Subnets[*].[SubnetId]' \
+    --output text))
+
+  aws elb create-load-balancer --load-balancer-name ${LB_NAME} \
+    --listeners "Protocol=TCP,LoadBalancerPort=8443,InstanceProtocol=TCP,InstancePort=8443" \
+    --subnets "${subnets[0]}" "${subnets[1]}" "${subnets[2]}" --security-groups $SECURITY_GROUP_ID | jq -r .DNSName
+}
+
+function attach-lb {
+  LB_NAME=$1
+  if [ "${LB_NAME}" == "" ];then
+    LB_NAME=k8s-master-${CLUSTER_NAME}
+  fi
+  
+  generate-masters
+
+  lb=$(aws elb describe-load-balancers --output json | jq -r ".LoadBalancerDescriptions | map(select(.LoadBalancerName == \"${LB_NAME}\"))[0].LoadBalancerName")
+  if [ "${lb}" == "null" ];then
+    echo -e "${red}ELB (${LB_NAME}) does not exist. ${reset}"
+    exit 1
+  fi
+  while read -r vpc instance;do
+    echo -e "${green}Adding ${instance} to load balancer ${LB_NAME} ${reset}"
+    aws elb register-instances-with-load-balancer --load-balancer-name ${LB_NAME} --instances $instance > /dev/null
+  done < "$MASTERS"
+}
+
+case $OPERATION in
+  create-tags)
+    create-tags $3
+    ;;
+  create-lb)
+    create-lb $3
+    ;;
+  attach-lb)
+    attach-lb $3
+    ;;
+  *)
+    usage
+    exit 1
+esac
