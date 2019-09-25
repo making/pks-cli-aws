@@ -65,6 +65,12 @@ If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NA
 
 See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#reconfigure
 
+### Delete a LB
+
+```
+pks-aws delete-lb <CLUSTER_NAME>
+```
+
 ## Typical workflow
 
 ### Create a new cluster

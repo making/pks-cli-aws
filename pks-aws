@@ -11,7 +11,7 @@ OPERATION=$1
 CLUSTER_NAME=$2
 
 function usage {
-  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME>) | attach-lb <CLUSTER_NAME> (<LB_NAME>)}"
+  echo "USAGE: $0 {create-tags <CLUSTER_NAME> <ENV_NAME> | create-lb <CLUSTER_NAME> <ENV_NAME> (<LB_NAME>) | attach-lb <CLUSTER_NAME> (<LB_NAME>) | delete-lb <CLUSTER_NAME> (<LB_NAME>)}"
 }
 
 if [ "${CLUSTER_NAME}" == "" ];then
@@ -75,7 +75,7 @@ function create-tags {
       echo -e "${yellow}Already created. Skip.${reset}" 1>&2
     fi
   done
-  
+
   SECURITY_GROUP_ID=$(worker-security-group)
   echo -e "${green}Checking if Tag (${TAG_KEY}) exists in security group (${SECURITY_GROUP_ID}) for LoadBalancer type service ${reset}" 1>&2
   tag=$(aws ec2 describe-tags --filters "Name=resource-id,Values=${SECURITY_GROUP_ID}" --query 'Tags' --output json | jq -r "map(select(.Key == \"${TAG_KEY}\"))[0].Key")
@@ -131,6 +131,24 @@ function attach-lb {
   done < "$MASTERS"
 }
 
+
+function delete-lb {
+  LB_NAME=$1
+  if [ "${LB_NAME}" == "" ];then
+    LB_NAME=k8s-master-${CLUSTER_NAME}
+  fi
+  
+  generate-masters
+
+  lb=$(aws elb describe-load-balancers --output json | jq -r ".LoadBalancerDescriptions | map(select(.LoadBalancerName == \"${LB_NAME}\"))[0].LoadBalancerName")
+  if [ "${lb}" == "null" ];then
+    echo -e "${red}ELB (${LB_NAME}) does not exist. ${reset}" 1>&2
+    exit 1
+  fi
+  echo -e "${green}Deleting load balancer ${LB_NAME}${reset}"
+  aws elb delete-load-balancer --load-balancer-name ${LB_NAME} 
+}
+
 case $OPERATION in
   create-tags)
     create-tags $3
@@ -140,6 +158,9 @@ case $OPERATION in
     ;;
   attach-lb)
     attach-lb $3
+    ;;
+  delete-lb)
+    delete-lb $3
     ;;
   *)
     usage
