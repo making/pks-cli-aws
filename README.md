@@ -2,6 +2,7 @@
 
 A helper script of `pks` cli for AWS.
 
+This script a bit reduces the pain of creating a PKS cluster on AWS.
 
 ## Prerequisite
 
@@ -35,6 +36,8 @@ This command creates a CLB with the name `k8s-master-<CLUSTER_NAME>`.
 
 If you want to specify the LB name, use `pks-aws create-lb <CLUSTER_NAME> <ENV_NAME> <LB_NAME>` instead.
 
+See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#create
+
 ### Create tags for public subnets
 
 ```
@@ -43,6 +46,8 @@ pks-aws create-tags <CLUSTER_NAME> <ENV_NAME>
 
 This commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag to public subnets of the given environment.
 Nothing happens if the subnets already have the tag.
+
+See also https://docs.pivotal.io/pks/1-5/deploy-workloads.html#aws
 
 ### Attach a LB to master VM(s)
 
@@ -54,6 +59,8 @@ This commands register master vms of the given cluster behind the CLB with the n
 
 
 If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NAME>` instead.
+
+See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#reconfigure
 
 ## Author
 
