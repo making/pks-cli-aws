@@ -37,7 +37,7 @@ This command creates a NLB with the name `pks-<CLUSTER_NAME>`.
 
 If you want to specify the LB name, use `pks-aws create-lb <CLUSTER_NAME> <ENV_NAME> <LB_NAME>` instead.
 
-See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#create
+See also https://docs.pivotal.io/pks/1-7/aws-cluster-load-balancer.html#create
 
 ### Create tags for public subnets
 
@@ -49,10 +49,10 @@ These commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag 
 Nothing happens if the subnets already have the tag.
 
 See also
-* https://docs.pivotal.io/pks/1-5/deploy-workloads.html#aws (for public subnets)
+* https://docs.pivotal.io/pks/1-7/deploy-workloads.html#aws (for public subnets)
 * https://github.com/kubernetes/kubernetes/issues/17626#issuecomment-389824696 (for the security group of workers)
 
-### Attach a LB to master VM(s)
+### Attach a LB to IPs of master VMs
 
 ```
 pks-aws attach-lb <CLUSTER_NAME>
@@ -63,7 +63,7 @@ These commands register master vms of the given cluster behind the NLB with the 
 
 If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NAME>` instead.
 
-See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#reconfigure
+See also https://docs.pivotal.io/pks/1-7/aws-cluster-load-balancer.html#reconfigure
 
 ### Delete tags for public subnets
 
