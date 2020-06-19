@@ -22,7 +22,7 @@ Objects above should be created by https://github.com/pivotal-cf/terraforming-aw
 
 ## How to use
 
-### Create a Load Balancer (CLB)
+### Create a Load Balancer (NLB)
 
 ```
 pks-aws create-lb <CLUSTER_NAME> <ENV_NAME>
@@ -33,7 +33,7 @@ pks-aws create-lb <CLUSTER_NAME> <ENV_NAME>
 * `ENV_NAME` is the value you configured in `terraform.tfvars` when installing PKS.
 
 
-This command creates a CLB with the name `k8s-master-<CLUSTER_NAME>`.
+This command creates a NLB with the name `pks-<CLUSTER_NAME>`.
 
 If you want to specify the LB name, use `pks-aws create-lb <CLUSTER_NAME> <ENV_NAME> <LB_NAME>` instead.
 
@@ -58,7 +58,7 @@ See also
 pks-aws attach-lb <CLUSTER_NAME>
 ```
 
-These commands register master vms of the given cluster behind the CLB with the name `k8s-master-<CLUSTER_NAME>`.
+These commands register master vms of the given cluster behind the NLB with the name `pks-<CLUSTER_NAME>`.
 
 
 If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NAME>` instead.
