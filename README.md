@@ -85,14 +85,6 @@ pks-aws attach-lb ${CLUSTER_NAME}
 pks-aws create-tags ${CLUSTER_NAME} ${ENV_NAME}
 ```
 
-### Re-attach a LB for each master after upgrading all clusters
-
-```
-for cluster_name in $(pks clusters --json | jq -r '.[].name'); do
- pks-aws attach-lb ${cluster_name}
-done
-```
-
 ## Author
 
 Originally based on: https://github.com/ronakbanka/manage-pks
