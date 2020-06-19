@@ -45,7 +45,7 @@ See also https://docs.pivotal.io/pks/1-5/aws-cluster-load-balancer.html#create
 pks-aws create-tags <CLUSTER_NAME> <ENV_NAME>
 ```
 
-This commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag to public subnets and the security group of workers (`vms_security_group`) of the given environment.
+These commands add `kubernetes.io/cluster/service-instance_${CLUSTER_UUID}` tag to public subnets and the security group of workers (`vms_security_group` or `platform-vms-sg`) of the given environment.
 Nothing happens if the subnets already have the tag.
 
 See also
@@ -58,7 +58,7 @@ See also
 pks-aws attach-lb <CLUSTER_NAME>
 ```
 
-This commands register master vms of the given cluster behind the CLB with the name `k8s-master-<CLUSTER_NAME>`.
+These commands register master vms of the given cluster behind the CLB with the name `k8s-master-<CLUSTER_NAME>`.
 
 
 If you want to specify the LB name, use `pks-aws attach-lb <CLUSTER_NAME> <LB_NAME>` instead.
