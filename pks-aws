@@ -40,15 +40,31 @@ function generate-masters() {
 }
 
 function lb-security-group {
-  aws ec2 describe-security-groups \
+  # Try security-group for terraforming-aws first
+  SG=$(aws ec2 describe-security-groups \
     --filters "Name=tag:Name,Values=$ENV_NAME-pks-master-security-group" \
-    --query "SecurityGroups[*].{ID:GroupId}" --output text
+    --query "SecurityGroups[*].{ID:GroupId}" --output text)
+  if [ "${SG}" == "" ];then
+    # If not found, try security-group for paving next
+    SG=$(aws ec2 describe-security-groups \
+      --filters "Name=tag:Name,Values=$ENV_NAME-pks-api-lb-sg" \
+      --query "SecurityGroups[*].{ID:GroupId}" --output text)
+  fi
+  echo $SG
 }
 
 function worker-security-group {
-  aws ec2 describe-security-groups \
+  # Try security-group for terraforming-aws first
+  SG=$(aws ec2 describe-security-groups \
     --filters "Name=tag:Name,Values=$ENV_NAME-vms-security-group" \
-    --query "SecurityGroups[*].{ID:GroupId}" --output text
+    --query "SecurityGroups[*].{ID:GroupId}" --output text)
+  if [ "${SG}" == "" ];then
+    # If not found, try security-group for paving next
+    SG=$(aws ec2 describe-security-groups \
+      --filters "Name=tag:Name,Values=$ENV_NAME-platform-vms-sg" \
+      --query "SecurityGroups[*].{ID:GroupId}" --output text)
+  fi
+  echo $SG
 }
 
 function create-tags {

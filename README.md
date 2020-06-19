@@ -15,10 +15,10 @@ Following CLIs are required.
 The PKS environment you want to manage must have
 
 * `${ENV_NAME}-public-subnet*` subnets
-* `${ENV_NAME}-pks-master-security-group` security group
-* `${ENV_NAME}-vms-security-group` security group
+* `${ENV_NAME}-pks-master-security-group` or `${ENV_NAME}-pks-api-lb-sg` security group
+* `${ENV_NAME}-vms-security-group` or `${ENV_NAME}-platform-vms-sg` security group
 
-Objects above should be created by https://github.com/pivotal-cf/terraforming-aws .
+Objects above should be created by https://github.com/pivotal-cf/terraforming-aws or https://github.com/pivotal/paving .
 
 ## How to use
 
