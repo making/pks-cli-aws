@@ -196,7 +196,6 @@ function create-lb {
 }
 
 function attach-lb {
-  set -x
   LB_NAME=$1
   if [ "${LB_NAME}" == "" ];then
     LB_NAME=pks-${CLUSTER_NAME}
@@ -207,6 +206,7 @@ function attach-lb {
     --query 'TargetGroups[0].TargetGroupArn' \
     --output text)
 
+  echo -e "${green}Register target(${target_group_arn}) for ${LB_NAME}${reset}"
   aws elbv2 register-targets \
       --target-group-arn ${target_group_arn} \
       --targets $(pks cluster ${CLUSTER_NAME} --json | jq -r '.kubernetes_master_ips | map(. = "Id=" + .) | @tsv')
