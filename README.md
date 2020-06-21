@@ -89,6 +89,15 @@ MASTER_HOSTNAME=$(pks-aws create-lb ${CLUSTER_NAME} ${ENV_NAME})
 pks create-cluster ${CLUSTER_NAME} -e ${MASTER_HOSTNAME} -p small -n 1 --wait
 pks-aws attach-lb ${CLUSTER_NAME}
 pks-aws create-tags ${CLUSTER_NAME} ${ENV_NAME}
+pks get-credentials ${CLUSTER_NAME}
+```
+
+### Delete a cluter
+
+```
+pks-aws delete-tags ${CLUSTER_NAME} ${ENV_NAME}
+pks-aws delete-lb ${CLUSTER_NAME}
+pks delete-cluster ${CLUSTER_NAME}
 ```
 
 ## Author
