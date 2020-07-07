@@ -4,6 +4,18 @@ A helper script of `pks` cli for AWS.
 
 This script a bit reduces the pain of creating a PKS cluster on AWS.
 
+> ⚠️ Since TKGI (formerly PKS) 1.8, `pks` cli has been renamed to `tkgi`. According to this change, rename `pks-aws` to `tkgi-aws`.
+
+```
+# for PKS ~1.7
+sudo wget -O /usr/local/bin/pks-aws https://raw.githubusercontent.com/making/pks-cli-aws/master/pks-aws
+sudo chmod +x /usr/local/bin/pks-aws
+
+# for TKGI 1.8~
+sudo wget -O /usr/local/bin/tkgi-aws https://raw.githubusercontent.com/making/pks-cli-aws/master/pks-aws
+sudo chmod +x /usr/local/bin/tkgi-aws
+```
+
 ## Prerequisite
 
 Following CLIs are required.

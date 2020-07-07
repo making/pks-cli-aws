@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+PKS_CLI=$(basename $0 | sed 's/-aws$//')
+$(which ${PKS_CLI} > /dev/null) || {
+  echo "${PKS_CLI} is not installed."
+  exit 1
+}
+
 red=`tput setaf 1`
 green=`tput setaf 2`
 yellow=`tput setaf 3`
@@ -75,7 +81,7 @@ function create-tags {
     --query 'Subnets[*].[VpcId][0][0]' \
     --output text)
 
-  cluster_uuid=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
+  cluster_uuid=$(${PKS_CLI} cluster ${CLUSTER_NAME} --json | jq -r .uuid)
 
   tag_key="kubernetes.io/cluster/service-instance_${cluster_uuid}"
   for subnet in ${subnets[@]};do
@@ -118,7 +124,7 @@ function delete-tags {
     --query 'Subnets[*].[VpcId][0][0]' \
     --output text)
 
-  cluster_uuid=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
+  cluster_uuid=$(${PKS_CLI} cluster ${CLUSTER_NAME} --json | jq -r .uuid)
 
   tag_key="kubernetes.io/cluster/service-instance_${cluster_uuid}"
   for subnet in ${subnets[@]};do
@@ -209,7 +215,7 @@ function attach-lb {
   echo -e "${green}Register target(${target_group_arn}) for ${LB_NAME}${reset}"
   aws elbv2 register-targets \
       --target-group-arn ${target_group_arn} \
-      --targets $(pks cluster ${CLUSTER_NAME} --json | jq -r '.kubernetes_master_ips | map(. = "Id=" + .) | @tsv')
+      --targets $(${PKS_CLI} cluster ${CLUSTER_NAME} --json | jq -r '.kubernetes_master_ips | map(. = "Id=" + .) | @tsv')
 }
 
 function delete-lb {
